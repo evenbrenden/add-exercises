@@ -4,19 +4,19 @@
 
 Proof by induction.
 
-n = 1 (base case):
+`n = 1` (base case):
 
 ```
 flipH . cw . cw . flipH = cw . cw
 ```
 
-n = k (induction step):
+`n = k` (induction step):
 
 ```
 flipH . cw^{2*k} . flipH = cw^{2*k}
 ```
 
-n = k + 1:
+`n = k + 1`:
 
 ```
 flipH . cw^{2*(k + 1)} . flipH
