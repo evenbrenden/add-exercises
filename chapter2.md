@@ -1,6 +1,6 @@
 # 2.1
 
-> **Exercise** Prove `flipH . cw^{2*n} . flipH = cw^{2*n}`, where the ^ operation means repeated composition. For example, `cw^4 = cw . cw . cw . cw.`
+> **Exercise** Prove `flipH . cw^{2*n} . flipH = cw^{2*n}`, where the ^ operation means repeated composition. For example, `cw^4 = cw . cw . cw . cw`.
 
 Proof by induction.
 
@@ -40,6 +40,38 @@ cw^{2*(k + 1)}
 
 ```
 ccw . flipH . cw
+```
+
+> **Exercise** Derive the fact that `flipV` is its own inverse, using any of the *other* laws we've given for our algebra.
+
+```
+flipV . flipV
+= // flipV = ccw . flipH . cw
+flipV . ccw . flipH . cw
+= // flipV = ccw . flipH . cw
+ccw . flipH . cw . ccw . flipH . cw
+= // cw . cww = id
+ccw . flipH . flipH . cw
+= // flipH . flipH = id
+ccw . cw
+= // cw . cww = id
+id
+```
+
+> **Exercise** Derive a proof that `flipV . flipH = cw . cw`.
+
+```
+flipV . flipH
+= // flipV = ccw . flipH . cw
+ccw . flipH . cw . flipH
+= // ccw = cw . cw . cw
+cw . cw . cw . flipH . cw . flipH
+= // flipH . cw = ccw . flipH
+cw . cw . cw . ccw . flipH . flipH
+= // cw . ccw = id
+cw . cw . flipH . flipH
+= // flip . flipH = id
+cw . cw
 ```
 
 # 2.2
