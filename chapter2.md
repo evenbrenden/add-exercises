@@ -108,10 +108,10 @@ cw (beside (ccw t1) (ccw t2))
 
 > **Exercise** Give a specification for the observation of `ccw`.
 
-**Law: "rasterize/cww"**
+**Law: "rasterize/ccw"**
 
 ```
 ∀ (t ::Tile) (w ::Int) (h ::Int).
-  rasterize w h (cw t) =
+  rasterize w h (ccw t) =
     reverse (transpose (rasterize h w t))
 ```
