@@ -39,5 +39,35 @@ cw^{2*(k + 1)}
 > **Exercise** Find a way of recreating figure 2.11, using only `cw`, `ccw` and `flipH`.
 
 ```
-flipV = ccw . flipH . cw
+ccw . flipH . cw
+```
+
+# 2.2
+
+> **Exercise** Prove `flipH (flipH (beside t1 t2)) = beside t1 t2` in two separate ways.
+
+Way #1:
+
+```
+flipH (flipH (beside t1 t2))
+= // flipH (flipH t) = t
+beside t1 t2
+```
+
+Way #2:
+
+```
+flipH (flipH (beside t1 t2))
+= // flipH (beside t1 t2) = beside (flipH t2) (flipH t1)
+flipH (beside (flipH t2) (flipH t1))
+= // flipH (beside t1 t2) = beside (flipH t2) (flipH t1
+beside (flipH (flipH t1)) (flipH (flipH (t2))
+= // flipH (flipH t) = t
+beside t2 t1
+```
+
+> **Exercise** Recreate figure 2.15, using `beside`, `cw` and `ccw`.
+
+```
+cw (beside (ccw t1) (ccw t2))
 ```
