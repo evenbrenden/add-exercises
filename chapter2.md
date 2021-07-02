@@ -1,4 +1,6 @@
-# 2.1
+# Chapter 2
+
+## 2.1
 
 > **Exercise** Prove `flipH . cw^{2*n} . flipH = cw^{2*n}`, where the ^ operation means repeated composition. For example, `cw^4 = cw . cw . cw . cw`.
 
@@ -74,7 +76,7 @@ cw . cw . flipH . flipH
 cw . cw
 ```
 
-# 2.2
+## 2.2
 
 > **Exercise** Prove `flipH (flipH (beside t1 t2)) = beside t1 t2` in two separate ways.
 
@@ -104,7 +106,7 @@ beside t2 t1
 cw (beside (ccw t1) (ccw t2))
 ```
 
-# 2.3
+## 2.3
 
 > **Exercise** Give a specification for the observation of `ccw`.
 
