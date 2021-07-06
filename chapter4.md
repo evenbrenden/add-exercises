@@ -108,14 +108,14 @@ reward ::Reward -> Challenge
 
 getRewards :: Challenge -> [Input] -> [Reward]
 
-gate (photoWithin p2 d2) (reward r) :: Challenge
+temp = gate (photoWithin p2 d2) (reward r) :: Challenge
 
-term = gate (photoWithin p1 d1) (gate (photoWithin p2 d2) (reward r)) :: Challenge
+term = gate (photoWithin p1 d1) temp :: Challenge
 
 getRewards term :: [Input] -> [Reward]
 ```
 
-My intuitive understanding is that the expression states that you need to pass through the gate pertaining to `p1` and `d1` first, then the gate pertaining to `p2` and `d2`, in order to collect the reward `r`. When applied to `getReward`, you get a function that, when fed a list of inputs that contains the right inputs in the right order, returns `[r]`. Otherwise, it returns `[]`. The input list may contain inputs that does not match any of the gates in between the inputs that do, without changing the result. In other words, you can make as many errors as you like as long as the order of the successes is right. You may also revisit a previously passed gate at any point in time.
+My intuitive understanding is that in order to collect the reward `r`, you first need to pass through the gate pertaining to `p1` and `d1`, then the gate pertaining to `p2` and `d2`. Applying the term to `getReward` gives a function that, when fed a list of inputs that contains the right inputs in the right order, returns `[r]`. Otherwise, it returns `[]`. It does not matter what else is in the input list. In other words, you can make as many errors as you like as long as the order of the successes is right. You may also revisit a previously passed gate at any point in time.
 
 > **Exercise** Use `locWithin` to encode a challenge that requires our player to walk around the block twice, clockwise, as in figure 4.9. Assume you have `p1, p2, p3 :: Point` and `d1, d2, d3 :: Distance` corresponding to each corner's locations and tolerances.
 
@@ -125,4 +125,22 @@ doubleClockwiseWalkAroundTheBlock =
       gate2 = gate (locWithin p2 d2)
       gate3 = gate (locWithin p3 d3)
   in  gate1 (gate 2 (gate3 (gate1 (gate2 (gate3 (reward r))))))
+```
+
+> **Exercise** Prove that `both (both c1 c2) (both c3 c4) = both c1 (both c2 (both c3 c4))`. How might an implementation use this fact?
+
+```
+both c1 (both c2 (both c3 c4))
+= // Associativity
+both (both c1 c2) (both c3 c4)
+```
+
+> **Exercise** There is only one "reasonable" semantics for threading inputs through `both` with respect to `getRewards`. What is it?
+
+**Law: "getRewards/both"**
+
+```
+∀ (c1 ::Challenge) (c2 ::Challenge) (is ::[Input]).
+  getRewards (both c1 c2) is
+    = getRewards c1 is <> getRewards c2 is
 ```
