@@ -88,3 +88,41 @@ getRewards (reward r) is
 = // getRewards (reward r) is = [r]
 [reward r]
 ```
+
+## 4.1
+
+> **Exercise** Give semantics in terms of `matches` for both `photoWithin` and `photoAbove`. Remember that these are now functions over `InputFilter`, not over `Challenge` like before. Does the new type simplify the semantics?
+
+SKIPPED
+
+## 4.2
+
+> **Exercise** Consider the term `gate (photoWithin p1 d1) (gate (photoWithin p2 d2) (reward r))`. What is your intuitive understanding of this expression? Do our stated semantics agree with you? Hint: try evaluating `getRewards` of the above, using two different photo inputs.
+
+```haskell
+photoWithin ::Point -> Distance -> InputFilter
+
+gate :: InputFilter -> Challenge -> Challenge
+
+reward ::Reward -> Challenge
+
+getRewards :: Challenge -> [Input] -> [Reward]
+
+gate (photoWithin p2 d2) (reward r) :: Challenge
+
+term = gate (photoWithin p1 d1) (gate (photoWithin p2 d2) (reward r)) :: Challenge
+
+getRewards term :: [Input] -> [Reward]
+```
+
+My intuitive understanding is that the expression states that you need to pass through the gate pertaining to `p1` and `d1` first, then the gate pertaining to `p2` and `d2`, in order to collect the reward `r`. When applied to `getReward`, you get a function that, when fed a list of inputs that contains the right inputs in the right order, returns `[r]`. Otherwise, it returns `[]`. The input list may contain inputs that does not match any of the gates in between the inputs that do, without changing the result. In other words, you can make as many errors as you like as long as the order of the successes is right. You may also revisit a previously passed gate at any point in time.
+
+> **Exercise** Use `locWithin` to encode a challenge that requires our player to walk around the block twice, clockwise, as in figure 4.9. Assume you have `p1, p2, p3 :: Point` and `d1, d2, d3 :: Distance` corresponding to each corner's locations and tolerances.
+
+```haskell
+doubleClockwiseWalkAroundTheBlock =
+  let gate1 = gate (locWithin p1 d1)
+      gate2 = gate (locWithin p2 d2)
+      gate3 = gate (locWithin p3 d3)
+  in  gate1 (gate 2 (gate3 (gate1 (gate2 (gate3 (reward r))))))
+```
