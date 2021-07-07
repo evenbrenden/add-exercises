@@ -144,3 +144,41 @@ both (both c1 c2) (both c3 c4)
   getRewards (both c1 c2) is
     = getRewards c1 is <> getRewards c2 is
 ```
+
+## 4.3
+
+> **Exercise** Give semantics for `andThen` in terms of `completes :: Challenge -> [Input] -> Bool`. Show that your these semantics necessarily contradict **"andThen/gate"**.
+
+```
+∀ (c1 :: Challenge) (c2 :: Challenge) (is :: [Input]).
+  completes c1 is =>
+    andThen c1 c2 = c2
+```
+
+This contradicts **"andThen/gate"** because the input is already consumed when considering the second challenge, i.e. `andThen (gate f c1) c2 /= gate f (andThen c1 c2)`.
+
+> **Exercise** Give a law for the behavior of `shorterOf`.
+
+**Law: "shorterOf"**
+
+```
+∀ (l1 :: [a]) (l2 :: [a]).
+  length l1 < l2 =>
+    shorterOf l1 l2 = l1
+```
+
+> **Exercise** Does `shorterOf` form a monoid? If so, give it. If not, show which laws it doesn't satisfy.
+
+**Law: "shorterOf:associative"**
+
+```
+∀ (l1 :: [a]) (l2 :: [a]) (l3 :: [a]).
+  shorterOf l1 (shorterOf l2 l3) = shorterOf (shorterOf l1 l2) l3
+```
+
+**Law: "shorterOf:identity"**
+
+```
+∀ (l :: [a]).
+  shorterOf l [] = shorterOf [] l
+```
