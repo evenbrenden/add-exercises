@@ -156,9 +156,9 @@ SKIPPED
 **Law: "shorterOf"**
 
 ```
-∀ (l1 :: [a]) (l2 :: [a]).
-  length l1 < l2 =>
-    shorterOf l1 l2 = l1
+∀ (l :: [a]) (l' :: [a]).
+  length l < l' =>
+    shorterOf l l' = l
 ```
 
 > **Exercise** Does `shorterOf` form a monoid? If so, give it. If not, show which laws it doesn't satisfy.
@@ -166,8 +166,8 @@ SKIPPED
 **Law: "shorterOf:associative"**
 
 ```
-∀ (l1 :: [a]) (l2 :: [a]) (l3 :: [a]).
-  shorterOf l1 (shorterOf l2 l3) = shorterOf (shorterOf l1 l2) l3
+∀ (l :: [a]) (l' :: [a]) (l'' :: [a]).
+  shorterOf l (shorterOf l' l'') = shorterOf (shorterOf l l') l''
 ```
 
 **Law: "shorterOf:identity"**
