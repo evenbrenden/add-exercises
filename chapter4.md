@@ -102,7 +102,7 @@ continue :: InputFilter -> Challenge -> Challenge
 **Law: "getRewards/photoWithin"**
 
 ```
-∀ (p :: Point) (d :: Distance) (pic :: Photo) (c ::Challenge) (is ::[Input]).
+∀ (p :: Point) (d :: Distance) (pic :: Photo) (c ::Challenge) (is :: [Input]).
   matches (photoWithin p d) (photo p pic) =>
     getRewards (continue (photoWithin p d) c) (photo p pic : is)
       = getRewards c is
@@ -111,24 +111,24 @@ continue :: InputFilter -> Challenge -> Challenge
 **Law: "getRewards/photoAbove"**
 
 ```
-∀ (a :: Altitude) (pic :: Photo) (c ::Challenge) (is ::[Input]).
+∀ (a :: Altitude) (pic :: Photo) (c :: Challenge) (is :: [Input]).
   matches (photoAbove a) (photo p pic) =>
     getRewards (continue (photoAbove a) c) (photo p pic : is)
       = getRewards c is
 ```
 
-Provided that this is correct, I don't think it's any simpler.
+Got rid of `within`, but I don't think it's any simpler than before. Then again maybe it's not correct.
 
 ## 4.2
 
 > **Exercise** Consider the term `gate (photoWithin p1 d1) (gate (photoWithin p2 d2) (reward r))`. What is your intuitive understanding of this expression? Do our stated semantics agree with you? Hint: try evaluating `getRewards` of the above, using two different photo inputs.
 
 ```haskell
-photoWithin ::Point -> Distance -> InputFilter
+photoWithin :: Point -> Distance -> InputFilter
 
 gate :: InputFilter -> Challenge -> Challenge
 
-reward ::Reward -> Challenge
+reward :: Reward -> Challenge
 
 getRewards :: Challenge -> [Input] -> [Reward]
 
@@ -164,7 +164,7 @@ both (both c1 c2) (both c3 c4)
 **Law: "getRewards/both"**
 
 ```
-∀ (c1 ::Challenge) (c2 ::Challenge) (is ::[Input]).
+∀ (c1 :: Challenge) (c2 :: Challenge) (is :: [Input]).
   getRewards (both c1 c2) is
     = getRewards c1 is <> getRewards c2 is
 ```
