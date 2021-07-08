@@ -166,8 +166,8 @@ SKIPPED
 **Law: "shorterOf:associative"**
 
 ```
-∀ (l :: [a]) (l' :: [a]) (l'' :: [a]).
-  shorterOf l (shorterOf l' l'') = shorterOf (shorterOf l l') l''
+∀ (l1 :: [a]) (l2 :: [a]) (l3 :: [a]).
+  shorterOf l1 (shorterOf l2 l3) = shorterOf (shorterOf l1 l2) l3
 ```
 
 **Law: "shorterOf:identity"**
@@ -176,3 +176,28 @@ SKIPPED
 ∀ (l :: [a]).
   shorterOf l [] = shorterOf [] l
 ```
+
+# 4.6
+
+> **Exercise** Does `eitherC` form a monoid? If so, what is its `identity` element?
+
+Just like the identity for the boolean OR monoid is FALSE, we need a constructor for a challenge that can never be completed:
+
+```
+unfinishable :: Challenge
+```
+
+**Law: "eitherC:identity"**
+
+```
+∀ (c1 :: Challenge).
+  eitherC c unfinishable = eitherC unfinishable c
+```
+
+> **Exercise** Reduce `eitherC (reward r1) empty` to its simplest form.
+
+SKIPPED
+
+> **Exercise** Encapsulate this timeout behavior in a new `timeout` constructor.  Be sure to give it a type and sufficient laws to entirely specify its behavior.
+
+SKIPPED
