@@ -183,7 +183,7 @@ SKIPPED
 
 Just like the identity for the boolean OR monoid is FALSE, we need a constructor for a challenge that can never be completed:
 
-```
+```haskell
 unfinishable :: Challenge
 ```
 
@@ -196,8 +196,38 @@ unfinishable :: Challenge
 
 > **Exercise** Reduce `eitherC (reward r1) empty` to its simplest form.
 
-SKIPPED
+```
+eitherC (reward r1) empty
+= // reward r = andThen (reward r) empty
+eitherC (andThen (reward r) empty) empty
+= // Distributivity
+andThen (reward r) (eitherC empty empty)
+= // Short-circuiting
+andThen (reward r) empty
+= // andThen (reward r) empty = reward r
+reward r
+```
 
 > **Exercise** Encapsulate this timeout behavior in a new `timeout` constructor.  Be sure to give it a type and sufficient laws to entirely specify its behavior.
 
-SKIPPED
+```haskell
+timeout :: Time -> Bool
+```
+
+**Law: "getRewards/afterTime not timed out"**
+
+```
+∀ (t :: Time) (i :: Input).
+  not (timeout t) =>
+    step (Just i) (gate (afterTime t) empty)
+      = pure step Nothing empty
+```
+
+**Law: "getRewards/afterTime timed out"**
+
+```
+∀ (t :: Time) (i :: Input).
+  timeout t =>
+    step (Just i) (gate (afterTime t) empty)
+      = pure (gate (afterTime t) empty)
+```
