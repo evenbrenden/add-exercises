@@ -210,24 +210,4 @@ reward r
 
 > **Exercise** Encapsulate this timeout behavior in a new `timeout` constructor.  Be sure to give it a type and sufficient laws to entirely specify its behavior.
 
-```haskell
-timeout :: Time -> Bool
-```
-
-**Law: "getRewards/afterTime not timed out"**
-
-```
-∀ (t :: Time) (i :: Input).
-  not (timeout t) =>
-    step (Just i) (gate (afterTime t) empty)
-      = pure step Nothing empty
-```
-
-**Law: "getRewards/afterTime timed out"**
-
-```
-∀ (t :: Time) (i :: Input).
-  timeout t =>
-    step (Just i) (gate (afterTime t) empty)
-      = pure (gate (afterTime t) empty)
-```
+SKIPPED
