@@ -211,3 +211,7 @@ reward r
 > **Exercise** Encapsulate this timeout behavior in a new `timeout` constructor.  Be sure to give it a type and sufficient laws to entirely specify its behavior.
 
 SKIPPED
+
+> **Exercise** Verify that these are reasonable laws and that they form a monoid homomorphism with `empty` and `andThen`.
+
+SKIPPED
