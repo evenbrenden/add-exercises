@@ -214,4 +214,32 @@ SKIPPED
 
 > **Exercise** Verify that these are reasonable laws and that they form a monoid homomorphism with `empty` and `andThen`.
 
-SKIPPED
+Using the `andThen` monoid laws we can verify that the `reward` monoid homomorphisms are reasonable.
+
+Identity:
+
+```
+(reward mempty) <> (reward r)
+= // reward mappend
+andThen (reward mempty) (reward r)
+= // reward identity
+andThen empty (reward r)
+= // andThen identity
+andThen (reward r) empty
+= // reward identity
+andThen (reward r) (reward mempty)
+= // reward mappend
+(reward r) <> (reward mempty)
+```
+
+Associativity:
+
+```
+reward (r1 <> (reward r2 <> r3))
+= // reward mappend
+andThen (reward r1) (andThen (reward r2) (reward r3))
+= // andThen associativity
+andThen (andThen (reward r1) (reward r2)) (reward r3)
+= // reward mappend
+reward ((reward r1 <> r2) <> r3)
+```
