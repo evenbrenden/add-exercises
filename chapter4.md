@@ -177,7 +177,7 @@ SKIPPED
   shorterOf l [] = shorterOf [] l
 ```
 
-# 4.6
+## 4.6
 
 > **Exercise** Does `eitherC` form a monoid? If so, what is its `identity` element?
 
