@@ -36,13 +36,13 @@ mempty
 
 ```
 fmap fst zap x unit
-=
+= // Concretize zap and unit
 fmap fst cartesianProduct x [()]
-=
+= // Apply cartesianProduct
 fmap fst [(x1, ()), (x2, ()), ...]
-=
+= // Apply fmap fst
 [x1, x2, ...]
-=
+= // xn is element n of x
 x
 ```
 
@@ -50,13 +50,13 @@ x
 
 ```
 fmap snd zap unit x
-=
+= // Concretize zap and unit
 fmap snd cartesianProduct [()] x
-=
+= // Apply cartesianProduct
 fmap snd [((), x1), ((), x2), ...]
-=
+= // Apply fmap snd
 [x1, x2, ...]
-=
+= // xn is element n of x
 x
 ```
 
@@ -64,15 +64,15 @@ x
 
 ```
 fmap reassoc (zap x (zap y z))
-=
+= // Concretize zaps
 fmap reassoc (cartesianProduct x (cartesianProduct y z))
-=
+= // Apply cartesianProducts
 fmap reassoc [(x1, (y1, z1)), (x2, (y2, z2)), ...]
-=
+= // Apply fmap reassoc
 [((x1, y1), z1), ((x2, y2), z2), ...]
-=
+= // Rewrite using cartesianProducts
 cartesianProduct (cartesianProduct x y) z
-=
+= // Generalize cartesianProducts
 zap (zap x y) z
 ```
 
@@ -80,13 +80,13 @@ zap (zap x y) z
 
 ```
 fmap fst zap x unit
-=
+= // Concretize zap and unit
 fmap fst zip x (repeat ())
-=
+= // Apply cartesianProduct
 fmap fst [(x1, ()), (x2, ()), ...]
-=
+= // Apply fmap fst
 [x1, x2, ...]
-=
+= // xn is element n of x
 x
 ```
 
@@ -94,13 +94,13 @@ x
 
 ```
 fmap snd zap unit x
-=
+= // Concretize zap and unit
 fmap snd zip (repeat ()) x
-=
+= // Apply cartesianProduct
 fmap snd [((), x1), ((), x2), ...]
-=
+= // Apply fmap snd
 [x1, x2, ...]
-=
+= // xn is element n of x
 x
 ```
 
@@ -108,14 +108,14 @@ x
 
 ```
 fmap reassoc (zap x (zap y z))
-=
+= // Concretize zaps
 fmap reassoc (zip x (zip y z))
-=
+= // Apply zips
 fmap reassoc [(x1, (y1, z1)), (x2, (y2, z2)), ...]
-=
+= // Apply fmap reassoc
 [((x1, y1), z1), ((x2, y2), z2), ...]
-=
+= // Rewrite using zips
 zip (zip x y) z
-=
+= // Generalize zips
 zap (zap x y) z
 ```
