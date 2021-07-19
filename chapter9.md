@@ -38,6 +38,8 @@ mempty
 fmap fst zap x unit
 = // Concretize zap and unit
 fmap fst cartesianProduct x [()]
+= // xn is element n of x
+fmap fst cartesianProduct [x1, x2, ...] [()]
 = // Apply cartesianProduct
 fmap fst [(x1, ()), (x2, ()), ...]
 = // Apply fmap fst
@@ -52,6 +54,8 @@ x
 fmap snd zap unit x
 = // Concretize zap and unit
 fmap snd cartesianProduct [()] x
+= // xn is element n of x
+fmap snd cartesianProduct [()] [x1, x2, ...]
 = // Apply cartesianProduct
 fmap snd [((), x1), ((), x2), ...]
 = // Apply fmap snd
@@ -66,11 +70,17 @@ x
 fmap reassoc (zap x (zap y z))
 = // Concretize zaps
 fmap reassoc (cartesianProduct x (cartesianProduct y z))
-= // Apply cartesianProducts
+= // xn/yn/zn is element n of x/y/z
+fmap reassoc (cartesianProduct [x1, x2, ...] (cartesianProduct [y1, y2, ...] [z1, z2, ...]))
+= // Apply cartesianProduct
+fmap reassoc (cartesianProduct [x1, x2, ...] [(y1, z1), (y2, z2), ...])
+= // Apply cartesianProduct
 fmap reassoc [(x1, (y1, z1)), (x2, (y2, z2)), ...]
 = // Apply fmap reassoc
 [((x1, y1), z1), ((x2, y2), z2), ...]
-= // Rewrite using cartesianProducts
+= // Rewrite using cartesianProduct
+cartesianProduct [(x1, y1), (x2, y2), ...] z
+= // Rewrite using cartesianProduct
 cartesianProduct (cartesianProduct x y) z
 = // Generalize cartesianProducts
 zap (zap x y) z
@@ -82,7 +92,9 @@ zap (zap x y) z
 fmap fst zap x unit
 = // Concretize zap and unit
 fmap fst zip x (repeat ())
-= // Apply cartesianProduct
+= // xn is element n of x
+fmap snd zip [x1, x2, ...] [(), (), ...]
+= // Apply zip
 fmap fst [(x1, ()), (x2, ()), ...]
 = // Apply fmap fst
 [x1, x2, ...]
@@ -96,7 +108,9 @@ x
 fmap snd zap unit x
 = // Concretize zap and unit
 fmap snd zip (repeat ()) x
-= // Apply cartesianProduct
+= // xn is element n of x
+fmap snd zip [(), (), ...] [x1, x2, ...]
+= // Apply zip
 fmap snd [((), x1), ((), x2), ...]
 = // Apply fmap snd
 [x1, x2, ...]
@@ -110,11 +124,17 @@ x
 fmap reassoc (zap x (zap y z))
 = // Concretize zaps
 fmap reassoc (zip x (zip y z))
-= // Apply zips
+= // xn/yn/zn is element n of x/y/z
+fmap reassoc (zip [x1, x2, ...] (zip [y1, y2, ...] [z1, z2, ...]))
+= // Apply zip
+fmap reassoc (zip [x1, x2, ...] [(y1, z1), (y2, z2), ...])
+= // Apply zip
 fmap reassoc [(x1, (y1, z1)), (x2, (y2, z2)), ...]
 = // Apply fmap reassoc
 [((x1, y1), z1), ((x2, y2), z2), ...]
-= // Rewrite using zips
+= // Rewrite using zip
+zip [(x1, y1), (x2, y2), ...] z
+= // Rewrite using zip
 zip (zip x y) z
 = // Generalize zips
 zap (zap x y) z
