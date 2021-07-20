@@ -10,7 +10,7 @@
 - Multiplication: `mempty = 1`.
 - Boolean AND: `mempty = True`.
 - Boolean OR: `mempty = False`.
-- The `behind` color mixing operation: `mempty = color 0 0 0 0`.
+- The `behind` color mixing operation: `mempty = color _ _ _ 0`.
 - The `min` function: Generally for `Ord`, no. For `Bounded` instances, `mempty = maxBound`.
 - The `max` function: Generally for `Ord`, no. For `Bounded` instances, `mempty = minBound`.
 - Picking the first and last element in a series: The empty series (e.g. `[]`), if it exists, is the identity element. If the empty series does not exist (as with the `NonEmpty` list), this semigroup does not form a monoid.
