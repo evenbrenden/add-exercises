@@ -61,23 +61,26 @@ diagonalTile :: Tile (Sum Int)
 diagonalTile =
     Tile { sample = \x y -> if x == y then Sum 1 else Sum 0 }
 
-toString :: Tile (Sum Int) -> String
-toString t =
-    let quadrantLength = 20
-        squareLength = 2 * quadrantLength + 1
+toString :: Int -> Tile (Sum Int) -> String
+toString squareLength' tile =
+    let squareLength = if mod squareLength' 2 == 0 then squareLength' + 1 else squareLength'
+        quadrantLength = int2Double (squareLength - 1)/2
         coords = do
-          r <- (/(int2Double quadrantLength)) . int2Double <$> [-quadrantLength..quadrantLength]
-          c <- (/(int2Double quadrantLength)) . int2Double <$> [-quadrantLength..quadrantLength]
+          r <- (/quadrantLength) <$> [-quadrantLength..quadrantLength]
+          c <- (/quadrantLength) <$> [-quadrantLength..quadrantLength]
           return (c, r)
         getSample (Tile s) x y = s x y
         render (Sum i) = if i == 1 then "██" else "░░"
-    in unlines $ concat <$> (chunksOf squareLength (render <$> (uncurry (getSample t) <$> coords)))
+        rendered = render <$> (uncurry (getSample tile) <$> coords)
+        stringified = unlines $ concat <$> chunksOf squareLength rendered
+    in stringified
 
 main :: IO ()
 main = do
-    putStrLn (toString diagonalTile)
-    putStrLn (toString (swirl diagonalTile))
-    -- Note that the strict equality in diagonalTile makes for some aliasing
-    putStrLn (toString (beside (flipV diagonalTile) (flipH diagonalTile)))
-    putStrLn (toString (behind (above diagonalTile Main.empty) (above Main.empty diagonalTile)))
+    let squareLength = 20
+    putStrLn (toString squareLength diagonalTile)
+    putStrLn (toString squareLength (swirl diagonalTile))
+    -- The strict equality in diagonalTile make these renderings a bit not very pretty
+    putStrLn (toString squareLength (beside (flipV diagonalTile) (flipH diagonalTile)))
+    putStrLn (toString squareLength (behind (above diagonalTile Main.empty) (above Main.empty diagonalTile)))
     return ()
