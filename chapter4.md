@@ -147,7 +147,7 @@ both (both c1 c2) (both c3 c4)
 
 ## 4.3
 
-> **Exercise** Give semantics for `andThen` in terms of `completes :: Challenge -> [Input] -> Bool`. Show that your these semantics necessarily contradict **"andThen/gate"**.
+> **Exercise** Give semantics for `andThen` in terms of `completes :: Challenge -> [Input] -> Bool`. Show that these semantics necessarily contradict **"andThen/gate"**.
 
 SKIPPED
 
