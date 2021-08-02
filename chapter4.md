@@ -212,7 +212,7 @@ reward r
 
 SKIPPED
 
-> **Exercise** Verify that these are reasonable laws and that they form a monoid homomorphism with `empty` and `andThen`.
+> Verify that these are reasonable laws and that they form a monoid homomorphism with `empty` and `andThen`.
 
 Using the `andThen` monoid laws we can verify that the `reward` monoid homomorphism with `empty` and `andThen` is reasonable.
 
