@@ -18,9 +18,10 @@ import Control.Monad.Writer.Class
 import Data.Map.Monoidal (MonoidalMap, singleton, toList)
 import Data.Semigroup
 import Data.Semigroup.Cancellative
+import Data.Set (Set, fromList)
 import Generic.Data
 
--- Scavanger Hunt implementation (initial)
+-- Scavanger Hunt implementation
 
 data ClueState
   = Seen | Failed | Completed
@@ -260,17 +261,17 @@ tellClue k = tell $ Results mempty k
 
 clue
     :: forall i k r
-     . ( Eq r, Monoid r, Commutative r)
+     . (Eq r, Monoid r, Commutative r)
     => [k] -> Challenge i k r -> Challenge i k r
 clue [] c = c
 clue k (RewardThen r c) = rewardThen r (clue k c)
 clue k c = foldr Clue c k
 
-_reward
+reward
     :: forall i k r
      . (Eq r, Monoid r, Commutative r)
     => r -> Challenge i k r
-_reward r = rewardThen r empty
+reward r = rewardThen r empty
 
 _bottom :: forall i k r. Challenge i k r
 _bottom = gate _never empty
@@ -348,16 +349,24 @@ _isValid _ = True
 
 -- Give it a spin
 
-instance HasFilter () where
-  data CustomFilter () = Whatever ()
+type POIChallenge = Challenge Point () (Set String)
+
+type Point = (Int, Int)
+
+instance HasFilter Point where
+  data CustomFilter Point = PointOfInterest Point
     deriving stock (Eq, Ord, Show, Generic)
-  filterMatches _  _ = True
+  filterMatches (PointOfInterest (poiX, poiY)) (x, y) =
+    x == poiX && y == poiY
 
 main :: IO ()
 main = do
-  let challenge = empty :: Challenge () String (Product Int)
-  let inputs = []
+  let filter' = _custom $ PointOfInterest (0, 0)
+  let reward' = fromList [":D"]
+  let challenge = gate filter' $ reward reward' :: POIChallenge
+  let inputs = [(10, 10), (0, 0)]
   let run = runChallenge challenge inputs
   let results = fst run
-  putStrLn $ show $ rewards results
+  let rewards' = rewards results
+  putStrLn $ show rewards'
   return ()
