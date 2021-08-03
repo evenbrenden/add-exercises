@@ -18,10 +18,10 @@ import Control.Monad.Writer.Class
 import Data.Map.Monoidal (MonoidalMap, singleton, toList)
 import Data.Semigroup
 import Data.Semigroup.Cancellative
-import Data.Set (Set, fromList)
+import Data.Set (fromList)
 import Generic.Data
 
--- Scavanger Hunt implementation
+-- ClueState implementation
 
 data ClueState
   = Seen | Failed | Completed
@@ -36,6 +36,8 @@ _completed = Completed
 
 _failed :: ClueState
 _failed = Failed
+
+-- InputFilter implementation
 
 class HasFilter i where
   data CustomFilter i
@@ -69,8 +71,8 @@ _orF = Or
 _notF :: InputFilter i -> InputFilter i
 _notF = Not
 
-_custom :: CustomFilter i -> InputFilter i
-_custom = Custom
+custom :: CustomFilter i -> InputFilter i
+custom = Custom
 
 _matches :: HasFilter i => InputFilter i -> i -> Bool
 _matches Always       _ = True
@@ -79,6 +81,8 @@ _matches (And f1 f2)  i = _matches f1 i && _matches f2 i
 _matches (Or f1 f2)   i = _matches f1 i || _matches f2 i
 _matches (Not f)      i = not $ _matches f i
 _matches (Custom f) i = filterMatches f i
+
+-- Results implementation
 
 data Results k r = Results
   { rewards :: r
@@ -96,6 +100,8 @@ instance (Show k, Show r) => Show (Results k r) where
     , show $ toList k
     , ")"
     ]
+
+-- Challenge implementation
 
 data Challenge i k r
   = Empty
@@ -153,7 +159,7 @@ _pumpChallenge c
   . (Nothing :)
   . fmap Just
 
-runChallenge
+_runChallenge
     :: forall i k r.
       ( HasFilter i, Eq (CustomFilter i)
       , Ord k
@@ -162,18 +168,18 @@ runChallenge
     => Challenge i k r
     -> [i]
     -> (Results k r, Bool)
-runChallenge c = fmap (== Empty) . _pumpChallenge c
+_runChallenge c = fmap (== Empty) . _pumpChallenge c
 
-_getRewards
+getRewards
     :: forall i k r.
       ( HasFilter i
       , Ord k
       , Monoid r, Commutative r, Eq r
       ) =>
       Challenge i k r -> [i] -> r
-_getRewards c = rewards . fst . _pumpChallenge c
+getRewards c = rewards . fst . _pumpChallenge c
 
-_getClues
+getClues
     :: forall i k r.
       ( HasFilter i
       , Ord k
@@ -182,7 +188,7 @@ _getClues
     => Challenge i k r
     -> [i]
     -> MonoidalMap [k] ClueState
-_getClues c = clues . fst . _pumpChallenge c
+getClues c = clues . fst . _pumpChallenge c
 
 _isEmpty
     :: forall i k r.
@@ -349,8 +355,6 @@ _isValid _ = True
 
 -- Give it a spin
 
-type POIChallenge = Challenge Point () (Set String)
-
 type Point = (Int, Int)
 
 instance HasFilter Point where
@@ -361,12 +365,16 @@ instance HasFilter Point where
 
 main :: IO ()
 main = do
-  let filter' = _custom $ PointOfInterest (0, 0)
-  let reward' = fromList [":D"]
-  let challenge = gate filter' $ reward reward' :: POIChallenge
-  let inputs = [(10, 10), (0, 0)]
-  let run = runChallenge challenge inputs
-  let results = fst run
-  let rewards' = rewards results
-  putStrLn $ show rewards'
+  let clueFilter = custom $ PointOfInterest (10, 10)
+  let rewardFilter = custom $ PointOfInterest (0, 0)
+  let cluesIn = ["Origo"]
+  let rewardsIn = fromList ["The journey is the goal"]
+  let challenge = andThen
+                    (gate clueFilter (clue cluesIn empty))
+                    (gate rewardFilter (reward rewardsIn))
+  let inputs = [(10, 10), (5, 5), (0, 0)]
+  let cluesOut = getClues challenge inputs
+  let rewardsOut = getRewards challenge inputs
+  putStrLn $ show cluesOut
+  putStrLn $ show rewardsOut
   return ()
