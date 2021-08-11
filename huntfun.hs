@@ -185,7 +185,7 @@ step kctx i (AndThen c1 c2) =
     c1' -> pure $ andThen c1' c2
 
 step kctx i (RewardThen r c) = do
-  _tellReward r
+  tellReward r
   step kctx i c
 
 step kctx (Just i) (Gate f c)
@@ -208,37 +208,37 @@ prune
     -> Challenge i k r
     -> (Results k r, Challenge i k r)
 prune kctx c = do
-  tellClue $ fmap (<> _failed) $ _findClues kctx c
+  tellClue $ fmap (<> _failed) $ findClues kctx c
   pure empty
 
-_findClues
+findClues
     :: forall i k r
      . Ord k
     => [k]
     -> Challenge i k r
     -> MonoidalMap [k] ClueState
-_findClues _    Empty
+findClues _    Empty
   = mempty
-_findClues kctx (Both c1 c2)
-  = _findClues kctx c1 <> _findClues kctx c2
-_findClues kctx (EitherC c1 c2)
-  = _findClues kctx c1 <> _findClues kctx c2
-_findClues _    (Gate _ _)
+findClues kctx (Both c1 c2)
+  = findClues kctx c1 <> findClues kctx c2
+findClues kctx (EitherC c1 c2)
+  = findClues kctx c1 <> findClues kctx c2
+findClues _    (Gate _ _)
   = mempty
-_findClues kctx (AndThen c _)
-  = _findClues kctx c
-_findClues kctx (RewardThen _ c)
-  = _findClues kctx c
-_findClues kctx (Clue k Empty)
+findClues kctx (AndThen c _)
+  = findClues kctx c
+findClues kctx (RewardThen _ c)
+  = findClues kctx c
+findClues kctx (Clue k Empty)
   = singleton (kctx <> [k]) _completed
-_findClues kctx (Clue k c)
+findClues kctx (Clue k c)
   = singleton (kctx <> [k]) _seen
-    <> _findClues (kctx <> [k]) c
+    <> findClues (kctx <> [k]) c
 
-_tellReward
+tellReward
     :: (Ord k, MonadWriter (Results k r) m)
     => r -> m ()
-_tellReward r = tell $ Results r mempty
+tellReward r = tell $ Results r mempty
 
 tellClue
     :: (Monoid r , MonadWriter (Results k r) m)
