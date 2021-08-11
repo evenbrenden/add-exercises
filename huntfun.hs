@@ -29,7 +29,7 @@ data ClueState
   deriving (Semigroup, Monoid) via Max ClueState
 
 _seen :: ClueState
-_seen = _seen
+_seen = Seen
 
 _completed :: ClueState
 _completed = Completed
