@@ -121,30 +121,6 @@ deriving stock instance
   (Show r, Show k, Show (CustomFilter i))
     => Show (Challenge i k r)
 
-_findClues
-    :: forall i k r
-     . Ord k
-    => [k]
-    -> Challenge i k r
-    -> MonoidalMap [k] ClueState
-_findClues _    Empty
-  = mempty
-_findClues kctx (Both c1 c2)
-  = _findClues kctx c1 <> _findClues kctx c2
-_findClues kctx (EitherC c1 c2)
-  = _findClues kctx c1 <> _findClues kctx c2
-_findClues _    (Gate _ _)
-  = mempty
-_findClues kctx (AndThen c _)
-  = _findClues kctx c
-_findClues kctx (RewardThen _ c)
-  = _findClues kctx c
-_findClues kctx (Clue k Empty)
-  = singleton (kctx <> [k]) _completed
-_findClues kctx (Clue k c)
-  = singleton (kctx <> [k]) _seen
-    <> _findClues (kctx <> [k]) c
-
 _pumpChallenge
     :: forall i k r
      . ( Ord k
@@ -170,26 +146,6 @@ _runChallenge
     -> (Results k r, Bool)
 _runChallenge c = fmap (== Empty) . _pumpChallenge c
 
-getRewards
-    :: forall i k r.
-      ( HasFilter i
-      , Ord k
-      , Monoid r, Commutative r, Eq r
-      ) =>
-      Challenge i k r -> [i] -> r
-getRewards c = rewards . fst . _pumpChallenge c
-
-getClues
-    :: forall i k r.
-      ( HasFilter i
-      , Ord k
-      , Monoid r, Commutative r, Eq r
-      )
-    => Challenge i k r
-    -> [i]
-    -> MonoidalMap [k] ClueState
-getClues c = clues . fst . _pumpChallenge c
-
 _isEmpty
     :: forall i k r.
       ( HasFilter i, Eq (CustomFilter i)
@@ -210,7 +166,7 @@ step
     -> Maybe i
     -> Challenge i k r
     -> (Results k r, Challenge i k r)
-step _    _ Empty = pure empty
+step _ _ Empty = pure empty
 
 step kctx i (Both c1 c2)
   = both <$> step kctx i c1 <*> step kctx i c2
@@ -221,7 +177,7 @@ step kctx i (EitherC c1 c2) = do
   case (c1', c2') of
     (Empty, _) -> prune kctx c2'
     (_, Empty) -> prune kctx c1'
-    _         -> pure $ eitherC c1' c2'
+    _          -> pure $ eitherC c1' c2'
 
 step kctx i (AndThen c1 c2) =
   step kctx i c1 >>= \case
@@ -234,7 +190,7 @@ step kctx i (RewardThen r c) = do
 
 step kctx (Just i) (Gate f c)
   | _matches f i = step kctx Nothing c
-step _    _ c@Gate{} = pure c
+step _ _ c@Gate{} = pure c
 
 step kctx i (Clue k c) = do
   let kctx' = kctx <> [k]
@@ -254,6 +210,30 @@ prune
 prune kctx c = do
   tellClue $ fmap (<> _failed) $ _findClues kctx c
   pure empty
+
+_findClues
+    :: forall i k r
+     . Ord k
+    => [k]
+    -> Challenge i k r
+    -> MonoidalMap [k] ClueState
+_findClues _    Empty
+  = mempty
+_findClues kctx (Both c1 c2)
+  = _findClues kctx c1 <> _findClues kctx c2
+_findClues kctx (EitherC c1 c2)
+  = _findClues kctx c1 <> _findClues kctx c2
+_findClues _    (Gate _ _)
+  = mempty
+_findClues kctx (AndThen c _)
+  = _findClues kctx c
+_findClues kctx (RewardThen _ c)
+  = _findClues kctx c
+_findClues kctx (Clue k Empty)
+  = singleton (kctx <> [k]) _completed
+_findClues kctx (Clue k c)
+  = singleton (kctx <> [k]) _seen
+    <> _findClues (kctx <> [k]) c
 
 _tellReward
     :: (Ord k, MonadWriter (Results k r) m)
@@ -339,19 +319,39 @@ eitherC c1 (RewardThen r c2) =
   rewardThen r (eitherC c1 c2)
 eitherC c1 c2 = EitherC c1 c2
 
-_isValid
+isValid
     :: forall i k r
      . Challenge i k r -> Bool
-_isValid (AndThen Empty _) = False
-_isValid (Both Empty _) = False
-_isValid (Both _ Empty) = False
-_isValid (EitherC _ Empty) = False
-_isValid (EitherC Empty _) = False
-_isValid (Both (RewardThen _ _) _) = False
-_isValid (Both _ (RewardThen _ _)) = False
-_isValid (EitherC (RewardThen _ _) _) = False
-_isValid (EitherC _ (RewardThen _ _)) = False
-_isValid _ = True
+isValid (AndThen Empty _) = False
+isValid (Both Empty _) = False
+isValid (Both _ Empty) = False
+isValid (EitherC _ Empty) = False
+isValid (EitherC Empty _) = False
+isValid (Both (RewardThen _ _) _) = False
+isValid (Both _ (RewardThen _ _)) = False
+isValid (EitherC (RewardThen _ _) _) = False
+isValid (EitherC _ (RewardThen _ _)) = False
+isValid _ = True
+
+getRewards
+    :: forall i k r.
+      ( HasFilter i
+      , Ord k
+      , Monoid r, Commutative r, Eq r
+      ) =>
+      Challenge i k r -> [i] -> r
+getRewards c = rewards . fst . _pumpChallenge c
+
+getClues
+    :: forall i k r.
+      ( HasFilter i
+      , Ord k
+      , Monoid r, Commutative r, Eq r
+      )
+    => Challenge i k r
+    -> [i]
+    -> MonoidalMap [k] ClueState
+getClues c = clues . fst . _pumpChallenge c
 
 -- Give it a spin
 
@@ -373,8 +373,10 @@ main = do
                     (gate clueFilter (clue cluesIn empty))
                     (gate rewardFilter (reward rewardsIn))
   let inputs = [(10, 10), (5, 5), (0, 0)]
+  let validity = isValid challenge
   let cluesOut = getClues challenge inputs
   let rewardsOut = getRewards challenge inputs
-  putStrLn $ show cluesOut
-  putStrLn $ show rewardsOut
+  print validity
+  print cluesOut
+  print rewardsOut
   return ()
