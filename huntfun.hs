@@ -28,14 +28,14 @@ data ClueState
   deriving stock (Eq, Ord, Show, Enum, Bounded)
   deriving (Semigroup, Monoid) via Max ClueState
 
-_seen :: ClueState
-_seen = Seen
+seen :: ClueState
+seen = Seen
 
-_completed :: ClueState
-_completed = Completed
+completed :: ClueState
+completed = Completed
 
-_failed :: ClueState
-_failed = Failed
+failed :: ClueState
+failed = Failed
 
 -- InputFilter implementation
 
@@ -59,8 +59,8 @@ deriving stock instance (Show (CustomFilter i)) => Show (InputFilter i)
 _always :: InputFilter i
 _always = Always
 
-_never  :: InputFilter i
-_never = Never
+never  :: InputFilter i
+never = Never
 
 _andF :: InputFilter i -> InputFilter i -> InputFilter i
 _andF = And
@@ -74,13 +74,13 @@ _notF = Not
 custom :: CustomFilter i -> InputFilter i
 custom = Custom
 
-_matches :: HasFilter i => InputFilter i -> i -> Bool
-_matches Always       _ = True
-_matches Never        _ = False
-_matches (And f1 f2)  i = _matches f1 i && _matches f2 i
-_matches (Or f1 f2)   i = _matches f1 i || _matches f2 i
-_matches (Not f)      i = not $ _matches f i
-_matches (Custom f) i = filterMatches f i
+matches :: HasFilter i => InputFilter i -> i -> Bool
+matches Always       _ = True
+matches Never        _ = False
+matches (And f1 f2)  i = matches f1 i && matches f2 i
+matches (Or f1 f2)   i = matches f1 i || matches f2 i
+matches (Not f)      i = not $ matches f i
+matches (Custom f) i = filterMatches f i
 
 -- Results implementation
 
@@ -121,7 +121,7 @@ deriving stock instance
   (Show r, Show k, Show (CustomFilter i))
     => Show (Challenge i k r)
 
-_pumpChallenge
+pumpChallenge
     :: forall i k r
      . ( Ord k
        , HasFilter i
@@ -130,7 +130,7 @@ _pumpChallenge
     => Challenge i k r
     -> [i]
     -> (Results k r, Challenge i k r)
-_pumpChallenge c
+pumpChallenge c
   = foldM (flip $ step []) c
   . (Nothing :)
   . fmap Just
@@ -144,7 +144,7 @@ _runChallenge
     => Challenge i k r
     -> [i]
     -> (Results k r, Bool)
-_runChallenge c = fmap (== Empty) . _pumpChallenge c
+_runChallenge c = fmap (== Empty) . pumpChallenge c
 
 _isEmpty
     :: forall i k r.
@@ -154,7 +154,7 @@ _isEmpty
       )
     => Challenge i k r
     -> Bool
-_isEmpty = (== Empty) . snd . flip _pumpChallenge []
+_isEmpty = (== Empty) . snd . flip pumpChallenge []
 
 step
     :: forall i k r
@@ -189,17 +189,17 @@ step kctx i (RewardThen r c) = do
   step kctx i c
 
 step kctx (Just i) (Gate f c)
-  | _matches f i = step kctx Nothing c
+  | matches f i = step kctx Nothing c
 step _ _ c@Gate{} = pure c
 
 step kctx i (Clue k c) = do
   let kctx' = kctx <> [k]
   step kctx' i c >>= \case
     Empty -> do
-      tellClue $ singleton kctx' _completed
+      tellClue $ singleton kctx' completed
       pure empty
     c' -> do
-      tellClue $ singleton kctx' _seen
+      tellClue $ singleton kctx' seen
       pure $ clue [k] c'
 
 prune
@@ -208,8 +208,18 @@ prune
     -> Challenge i k r
     -> (Results k r, Challenge i k r)
 prune kctx c = do
-  tellClue $ fmap (<> _failed) $ findClues kctx c
+  tellClue $ fmap (<> failed) $ findClues kctx c
   pure empty
+
+tellReward
+    :: (Ord k, MonadWriter (Results k r) m)
+    => r -> m ()
+tellReward r = tell $ Results r mempty
+
+tellClue
+    :: (Monoid r , MonadWriter (Results k r) m)
+    => MonoidalMap [k] ClueState -> m ()
+tellClue k = tell $ Results mempty k
 
 findClues
     :: forall i k r
@@ -230,20 +240,26 @@ findClues kctx (AndThen c _)
 findClues kctx (RewardThen _ c)
   = findClues kctx c
 findClues kctx (Clue k Empty)
-  = singleton (kctx <> [k]) _completed
+  = singleton (kctx <> [k]) completed
 findClues kctx (Clue k c)
-  = singleton (kctx <> [k]) _seen
+  = singleton (kctx <> [k]) seen
     <> findClues (kctx <> [k]) c
 
-tellReward
-    :: (Ord k, MonadWriter (Results k r) m)
-    => r -> m ()
-tellReward r = tell $ Results r mempty
+rewardThen
+    :: forall i k r
+     . (Eq r, Monoid r, Commutative r)
+    => r -> Challenge i k r -> Challenge i k r
+rewardThen r c | r == mempty = c
+rewardThen r' (RewardThen r c) = RewardThen (r <> r') c
+rewardThen r c = RewardThen r c
 
-tellClue
-    :: (Monoid r , MonadWriter (Results k r) m)
-    => MonoidalMap [k] ClueState -> m ()
-tellClue k = tell $ Results mempty k
+-- Public interface
+
+empty :: forall i k r. Challenge i k r
+empty = Empty
+
+_bottom :: forall i k r. Challenge i k r
+_bottom = gate never empty
 
 clue
     :: forall i k r
@@ -258,17 +274,6 @@ reward
      . (Eq r, Monoid r, Commutative r)
     => r -> Challenge i k r
 reward r = rewardThen r empty
-
-_bottom :: forall i k r. Challenge i k r
-_bottom = gate _never empty
-
-rewardThen
-    :: forall i k r
-     . (Eq r, Monoid r, Commutative r)
-    => r -> Challenge i k r -> Challenge i k r
-rewardThen r c | r == mempty = c
-rewardThen r' (RewardThen r c) = RewardThen (r <> r') c
-rewardThen r c = RewardThen r c
 
 gate
     :: forall i k r
@@ -288,9 +293,6 @@ both c1 (RewardThen r c2) = rewardThen r (both c1 c2)
 both Empty c2 = c2
 both c1 Empty = c1
 both c1 c2 = Both c1 c2
-
-empty :: forall i k r. Challenge i k r
-empty = Empty
 
 andThen
     :: forall i k r
@@ -319,20 +321,6 @@ eitherC c1 (RewardThen r c2) =
   rewardThen r (eitherC c1 c2)
 eitherC c1 c2 = EitherC c1 c2
 
-isValid
-    :: forall i k r
-     . Challenge i k r -> Bool
-isValid (AndThen Empty _) = False
-isValid (Both Empty _) = False
-isValid (Both _ Empty) = False
-isValid (EitherC _ Empty) = False
-isValid (EitherC Empty _) = False
-isValid (Both (RewardThen _ _) _) = False
-isValid (Both _ (RewardThen _ _)) = False
-isValid (EitherC (RewardThen _ _) _) = False
-isValid (EitherC _ (RewardThen _ _)) = False
-isValid _ = True
-
 getRewards
     :: forall i k r.
       ( HasFilter i
@@ -340,7 +328,7 @@ getRewards
       , Monoid r, Commutative r, Eq r
       ) =>
       Challenge i k r -> [i] -> r
-getRewards c = rewards . fst . _pumpChallenge c
+getRewards c = rewards . fst . pumpChallenge c
 
 getClues
     :: forall i k r.
@@ -351,7 +339,7 @@ getClues
     => Challenge i k r
     -> [i]
     -> MonoidalMap [k] ClueState
-getClues c = clues . fst . _pumpChallenge c
+getClues c = clues . fst . pumpChallenge c
 
 -- Give it a spin
 
@@ -373,10 +361,8 @@ main = do
                     (gate clueFilter (clue cluesIn empty))
                     (gate rewardFilter (reward rewardsIn))
   let inputs = [(10, 10), (5, 5), (0, 0)]
-  let validity = isValid challenge
   let cluesOut = getClues challenge inputs
   let rewardsOut = getRewards challenge inputs
-  print validity
   print cluesOut
   print rewardsOut
   return ()
