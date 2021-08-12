@@ -14,7 +14,6 @@
 {-# LANGUAGE UndecidableInstances  #-}
 
 import Control.Monad
-import Control.Monad.Writer.Class
 import Data.Map.Monoidal (MonoidalMap, singleton, toList)
 import Data.Semigroup
 import Data.Semigroup.Cancellative
@@ -184,9 +183,10 @@ step kctx i (AndThen c1 c2) =
     Empty -> step kctx Nothing c2
     c1' -> pure $ andThen c1' c2
 
-step kctx i (RewardThen r c) = do
-  tellReward r
-  step kctx i c
+step kctx i (RewardThen r c) =
+  let r' = Results r mempty
+      (r'', c') = step kctx i c
+  in (r' <> r'', c')
 
 step kctx (Just i) (Gate f c)
   | matches f i = step kctx Nothing c
@@ -195,31 +195,23 @@ step _ _ c@Gate{} = pure c
 step kctx i (Clue k c) = do
   let kctx' = kctx <> [k]
   step kctx' i c >>= \case
-    Empty -> do
-      tellClue $ singleton kctx' completed
-      pure empty
-    c' -> do
-      tellClue $ singleton kctx' seen
-      pure $ clue [k] c'
+    Empty ->
+      let r = Results mempty $ singleton kctx' completed
+      in (r, Empty)
+    c' ->
+      let r = Results mempty $ singleton kctx' seen
+      in (r, clue [k] c')
 
 prune
     :: (Ord k, Monoid r)
     => [k]
     -> Challenge i k r
     -> (Results k r, Challenge i k r)
-prune kctx c = do
-  tellClue $ fmap (<> failed) $ findClues kctx c
-  pure empty
-
-tellReward
-    :: (Ord k, MonadWriter (Results k r) m)
-    => r -> m ()
-tellReward r = tell $ Results r mempty
-
-tellClue
-    :: (Monoid r , MonadWriter (Results k r) m)
-    => MonoidalMap [k] ClueState -> m ()
-tellClue k = tell $ Results mempty k
+prune kctx c =
+  let k' = fmap (<> failed) $ findClues kctx c
+      r' = Results mempty k'
+      (r'', c') = pure empty
+  in (r' <> r'', c')
 
 findClues
     :: forall i k r
