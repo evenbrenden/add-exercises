@@ -184,9 +184,9 @@ step kctx i (AndThen c1 c2) =
     c1' -> pure $ andThen c1' c2
 
 step kctx i (RewardThen r c) =
-  let r' = Results r mempty
-      (r'', c') = step kctx i c
-  in (r' <> r'', c')
+  let s = Results r mempty
+      (s', c') = step kctx i c
+  in  (s <> s', c')
 
 step kctx (Just i) (Gate f c)
   | matches f i = step kctx Nothing c
@@ -196,11 +196,11 @@ step kctx i (Clue k c) = do
   let kctx' = kctx <> [k]
   step kctx' i c >>= \case
     Empty ->
-      let r = Results mempty $ singleton kctx' completed
-      in (r, Empty)
+      let s = Results mempty $ singleton kctx' completed
+      in  (s, Empty)
     c' ->
-      let r = Results mempty $ singleton kctx' seen
-      in (r, clue [k] c')
+      let s = Results mempty $ singleton kctx' seen
+      in  (s, clue [k] c')
 
 prune
     :: (Ord k, Monoid r)
@@ -208,10 +208,10 @@ prune
     -> Challenge i k r
     -> (Results k r, Challenge i k r)
 prune kctx c =
-  let k' = fmap (<> failed) $ findClues kctx c
-      r' = Results mempty k'
-      (r'', c') = pure empty
-  in (r' <> r'', c')
+  let k = fmap (<> failed) $ findClues kctx c
+      s = Results mempty k
+      (s', c') = pure empty
+  in  (s <> s', c')
 
 findClues
     :: forall i k r
