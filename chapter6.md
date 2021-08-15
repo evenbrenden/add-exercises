@@ -4,4 +4,4 @@
 
 > **Exercise** Implement the optimization of dealing with the entire clue list in a single continuation.
 
-SKIPPED
+PASS

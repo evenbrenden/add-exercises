@@ -93,7 +93,7 @@ getRewards (reward r) is
 
 > **Exercise** Give semantics in terms of `matches` for both `photoWithin` and `photoAbove`. Remember that these are now functions over `InputFilter`, not over `Challenge` like before. Does the new type simplify the semantics?
 
-SKIPPED
+PASS
 
 ## 4.2
 
@@ -149,7 +149,7 @@ both (both c1 c2) (both c3 c4)
 
 > **Exercise** Give semantics for `andThen` in terms of `completes :: Challenge -> [Input] -> Bool`. Show that these semantics necessarily contradict **"andThen/gate"**.
 
-SKIPPED
+PASS
 
 > **Exercise** Give a law for the behavior of `shorterOf`.
 
@@ -210,7 +210,7 @@ reward r
 
 > **Exercise** Encapsulate this timeout behavior in a new `timeout` constructor.  Be sure to give it a type and sufficient laws to entirely specify its behavior.
 
-SKIPPED
+PASS
 
 > Verify that these are reasonable laws and that they form a monoid homomorphism with `empty` and `andThen`.
 
