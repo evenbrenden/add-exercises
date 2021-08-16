@@ -93,7 +93,33 @@ getRewards (reward r) is
 
 > **Exercise** Give semantics in terms of `matches` for both `photoWithin` and `photoAbove`. Remember that these are now functions over `InputFilter`, not over `Challenge` like before. Does the new type simplify the semantics?
 
-PASS
+Still using `getRewards` to observe, we need a way to get from an `InputFilter` to an updated `Challenge` in order to state our laws:
+
+```
+continue :: InputFilter -> Challenge -> Challenge
+```
+
+**Law: "getRewards/photoWithin"**
+
+```
+∀ (poi :: Point) (p :: Point) (pic :: Photo)
+      (d :: Distance) (c ::Challenge) (is :: [Input]).
+  matches (photoWithin poi d) (photo p pic) =>
+    getRewards (continue (photoWithin poi d) c) (photo p pic : is)
+      = getRewards c is
+```
+
+**Law: "getRewards/photoAbove"**
+
+```
+∀ (a :: Altitude) (p :: Point) (pic :: Photo)
+      (c :: Challenge) (is :: [Input]).
+  matches (photoAbove a) (photo p pic) =>
+    getRewards (continue (photoAbove a) c) (photo p pic : is)
+      = getRewards c is
+```
+
+The new type does not simplify the semantics.
 
 ## 4.2
 
