@@ -95,7 +95,7 @@ getRewards (reward r) is
 
 Still using `getRewards` to observe, we need a way to get from an `InputFilter` to an updated `Challenge` in order to state our laws:
 
-```
+```haskell
 continue :: InputFilter -> Challenge -> Challenge
 ```
 
@@ -119,7 +119,7 @@ continue :: InputFilter -> Challenge -> Challenge
       = getRewards c is
 ```
 
-The new type does not simplify the semantics.
+IMO the new type does not simplify the semantics.
 
 ## 4.2
 
