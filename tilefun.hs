@@ -11,7 +11,7 @@ import Data.List.Split
 import GHC.Float
 import Data.Monoid
 
--- Tile implementation
+-- Tile public interface + implementation
 
 newtype Tile a = Tile
   { sample :: Double -> Double -> a
