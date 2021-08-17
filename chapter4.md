@@ -175,7 +175,24 @@ both (both c1 c2) (both c3 c4)
 
 > **Exercise** Give semantics for `andThen` in terms of `completes :: Challenge -> [Input] -> Bool`. Show that these semantics necessarily contradict **"andThen/gate"**.
 
-PASS
+**Law "andThen/completes"**
+```
+∀ (c1 :: Challenge) (c2 :: Challenge) (is :: [Input]).
+  completes c1 is =>
+    andThen c1 c2 = c2
+```
+
+This states that all the inputs are already consumed when considering the second challenge. We get:
+
+**Law: "andThen/matches/gate"**
+```
+∀ (f :: InputFilter) (c1 :: Challenge) (c2 :: Challenge)
+      (i : Input).
+  matches f i =>
+    andThen (gate f c1) c2 = c2
+```
+
+Which contradicts **"andThen/gate"**.
 
 > **Exercise** Give a law for the behavior of `shorterOf`.
 
