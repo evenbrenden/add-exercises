@@ -253,7 +253,42 @@ reward r
 
 > **Exercise** Encapsulate this timeout behavior in a new `timeout` constructor.  Be sure to give it a type and sufficient laws to entirely specify its behavior.
 
-PASS
+
+```haskell
+data Time
+
+time      :: Time -> Input
+afterTime :: Time -> InputFilter
+timeout   :: Time -> Challenge -> Challenge
+
+timeout end c = gate (afterTime end) c
+```
+
+**Law: "step/timeout not timed out"**
+
+```
+∀ (t :: Time) (end :: Time) (c :: Challenge).
+  matches (timeout end) (time t) =>
+    step (Just (time t)) (timeout end c)
+      = step Nothing c
+```
+
+**Law: "step/timeout timed out"**
+
+```
+∀ (t :: Time) (end :: Time) (c :: Challenge).
+  not (matches (timeout end) (time t)) =>
+    step (Just (time t)) (timeout end c)
+      = pure (gate never c)
+```
+
+**Law: "step/timeout no input"**
+
+```
+∀ (end :: Time) (c :: Challenge).
+  step Nothing (timeout end c)
+    = pure (timeout end c)
+```
 
 > Verify that these are reasonable laws and that they form a monoid homomorphism with `empty` and `andThen`.
 
