@@ -13,6 +13,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
+module HuntFun where
+
 import Control.Monad
 import Data.Map.Monoidal (MonoidalMap, singleton, toList)
 import Data.Semigroup
@@ -55,20 +57,20 @@ deriving stock instance (Eq (CustomFilter i)) => Eq (InputFilter i)
 deriving stock instance (Ord (CustomFilter i)) => Ord (InputFilter i)
 deriving stock instance (Show (CustomFilter i)) => Show (InputFilter i)
 
-_always :: InputFilter i
-_always = Always
+always :: InputFilter i
+always = Always
 
 never  :: InputFilter i
 never = Never
 
-_andF :: InputFilter i -> InputFilter i -> InputFilter i
-_andF = And
+andF :: InputFilter i -> InputFilter i -> InputFilter i
+andF = And
 
-_orF  :: InputFilter i -> InputFilter i -> InputFilter i
-_orF = Or
+orF  :: InputFilter i -> InputFilter i -> InputFilter i
+orF = Or
 
-_notF :: InputFilter i -> InputFilter i
-_notF = Not
+notF :: InputFilter i -> InputFilter i
+notF = Not
 
 custom :: CustomFilter i -> InputFilter i
 custom = Custom
@@ -134,7 +136,7 @@ pumpChallenge c
   . (Nothing :)
   . fmap Just
 
-_runChallenge
+runChallenge
     :: forall i k r.
       ( HasFilter i, Eq (CustomFilter i)
       , Ord k
@@ -143,9 +145,9 @@ _runChallenge
     => Challenge i k r
     -> [i]
     -> (Results k r, Bool)
-_runChallenge c = fmap (== Empty) . pumpChallenge c
+runChallenge c = fmap (== Empty) . pumpChallenge c
 
-_isEmpty
+isEmpty
     :: forall i k r.
       ( HasFilter i, Eq (CustomFilter i)
       , Ord k
@@ -153,7 +155,7 @@ _isEmpty
       )
     => Challenge i k r
     -> Bool
-_isEmpty = (== Empty) . snd . flip pumpChallenge []
+isEmpty = (== Empty) . snd . flip pumpChallenge []
 
 step
     :: forall i k r
@@ -250,8 +252,8 @@ rewardThen r c = RewardThen r c
 empty :: forall i k r. Challenge i k r
 empty = Empty
 
-_bottom :: forall i k r. Challenge i k r
-_bottom = gate never empty
+bottom :: forall i k r. Challenge i k r
+bottom = gate never empty
 
 clue
     :: forall i k r
