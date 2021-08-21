@@ -1,6 +1,6 @@
 #! /usr/bin/env nix-shell
 #! nix-shell -p ghcid
-#! nix-shell -p "haskellPackages.ghcWithPackages (p: [p.generic-data p.monoid-subclasses p.monoidal-containers p.multiset])"
+#! nix-shell -p "haskellPackages.ghcWithPackages (p: [p.generic-data p.monoid-subclasses p.monoidal-containers])"
 #! nix-shell -i "ghcid -c 'ghci -Wall' -T main"
 
 {-# LANGUAGE DeriveGeneric         #-}
@@ -8,31 +8,19 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE StrictData            #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
 module HuntFun where
 
-import           Control.Applicative (liftA2)
-import           Control.Monad.ST
-import           Data.DList (DList)
-import qualified Data.DList as DL
-import           Data.Foldable
-import           Data.Map.Monoidal (MonoidalMap)
-import qualified Data.Map.Monoidal as M
-import           Data.Monoid
-import           Data.Monoid.Cancellative
-import           Data.STRef
-import           Data.Semigroup
-import           Data.Set (Set, fromList)
-import qualified Data.Set as S
-import           GHC.Generics
-import           Generic.Data
+import Control.Monad
+import Data.Map.Monoidal (MonoidalMap, singleton, toList)
+import Data.Semigroup
+import Data.Semigroup.Cancellative
+import Data.Set (fromList)
+import Generic.Data
 
 -- ClueState implementation
 
@@ -116,301 +104,236 @@ instance (Show k, Show r) => Show (Results k r) where
 
 -- Challenge implementation
 
-newtype Challenge i k r = Challenge
-  { unChallenge
-        :: forall s
-         . DList k
-        -> (DList k -> ClueState
-                    -> ST s ClueState)
-        -> ST s (ChallengeData i k r s)
-        -> ST s (ChallengeData i k r s)
-  }
-
-instance ( Show (CustomFilter i), Ord (CustomFilter i)
-         , Ord k, Show k
-         , Monoid r, Show r
-         )
-      => Show (Challenge i k r) where
-  show (Challenge g) =
-    runST $ fmap show $ g mempty (const $ pure . id) end
-
-instance (Semigroup r, Ord k, Ord (CustomFilter i))
-      => Semigroup (Challenge i k r) where
-  Challenge c1 <> Challenge c2 =
-    Challenge $ \kctx rec cont -> do
-        d1 <- c1 kctx rec cont
-        d2 <- c2 kctx rec cont
-        pure $ d1 <> d2
-
-instance (Monoid r, Ord k, Ord (CustomFilter i))
-      => Monoid (Challenge i k r) where
-  mempty = Challenge $ \_ -> pure mempty
-
-data ChallengeData i k r s = ChallengeData
-  { waitingOn
-      :: !(MonoidalMap
-            (InputFilter i)
-            (ST s (ChallengeData i k r s)))
-  , results    :: !(Results k r)
-  , isComplete :: !Any
-  }
+data Challenge i k r
+  = Empty
+  | Gate (InputFilter i) (Challenge i k r)
+  | Clue       k (Challenge i k r)
+  | RewardThen r (Challenge i k r)
+  | EitherC (Challenge i k r) (Challenge i k r)
+  | Both    (Challenge i k r) (Challenge i k r)
+  | AndThen (Challenge i k r) (Challenge i k r)
   deriving stock (Generic)
 
-deriving via Generically (ChallengeData i k r s)
-  instance (Ord k, Semigroup r, Ord (CustomFilter i))
-    => Semigroup (ChallengeData i k r s)
+deriving stock instance
+  (Eq r, Eq k, Eq (CustomFilter i))
+    => Eq (Challenge i k r)
 
-deriving via Generically (ChallengeData i k r s)
-  instance (Ord k, Monoid r, Ord (CustomFilter i))
-    => Monoid (ChallengeData i k r s)
-
-instance (Show k, Show (CustomFilter i), Show r)
-      => Show (ChallengeData i k r s) where
-  show (ChallengeData ri r (Any res)) = mconcat
-    [ "Challenge { waitingFor = "
-    , show $ M.keys ri
-    , ", result = "
-    , show res
-    , ", rewards = "
-    , show r
-    , " }"
-    ]
-
-tellClue
-    :: (Ord (CustomFilter i), Ord k, Monoid r)
-    => MonoidalMap [k] ClueState
-    -> ChallengeData i k r s
-tellClue ks =
-  mempty { results = Results mempty ks }
-
-tellReward
-    :: (Ord (CustomFilter i), Ord k, Monoid r)
-    => r
-    -> ChallengeData i k r s
-tellReward r = mempty { results = Results r mempty }
-
-rewardThen
-    :: (Ord (CustomFilter i), Ord k, Monoid r, Ord k)
-    => r
-    -> Challenge i k r
-    -> Challenge i k r
-rewardThen r (Challenge c) =
-  Challenge $ \kctx rec cont -> do
-    d <- c kctx rec cont
-    pure $ tellReward r <> d
-
-decorate
-    :: Ord k
-    => STRef s Bool
-    -> STRef s (Set (DList k))
-    -> (DList k -> ClueState -> ST s ClueState)
-    -> DList k
-    -> ClueState
-    -> ST s ClueState
-decorate filled ref rec k cs = do
-  readSTRef filled >>= \case
-    True -> rec k failed
-    False -> do
-      modifySTRef' ref $ S.insert k
-      rec k cs
-
-prune
-    :: (Ord (CustomFilter i), Ord k, Monoid r)
-    => STRef s (Set (DList k))
-    -> ST s (ChallengeData i k r s)
-prune ref = do
-  ks <- readSTRef ref
-  pure $ flip foldMap ks $ \k ->
-    tellClue $ M.singleton (DL.toList k) failed
-
-oneshot :: Monoid a => STRef s Bool -> ST s a -> ST s a
-oneshot ref m =
-  readSTRef ref >>= \case
-    True  -> pure mempty
-    False -> do
-      writeSTRef ref True
-      m
-
-end
-    :: (Ord (CustomFilter i), Ord k, Monoid r)
-    => ST s (ChallengeData i k r s)
-end = pure $ mempty { isComplete = Any True }
-
-runChallenge
-    :: forall i k r
-     . ( HasFilter i, Ord (CustomFilter i)
-       , Ord k
-       , Monoid r
-       )
-    => [i] -> Challenge i k r -> (Results k r, Bool)
-runChallenge evs (Challenge c) = runST $ do
-  d' <-
-    pumpChallenge evs =<<
-      c mempty
-        (const $ pure . id)
-        end
-  pure (results d', getAny $ isComplete d')
+deriving stock instance
+  (Show r, Show k, Show (CustomFilter i))
+    => Show (Challenge i k r)
 
 pumpChallenge
-    :: ( HasFilter i, Ord (CustomFilter i)
-       , Ord k
-       , Monoid r
+    :: forall i k r
+     . ( Ord k
+       , HasFilter i
+       , Monoid r, Commutative r, Eq r
        )
-    => [i]
-    -> ChallengeData i k r s
-    -> ST s (ChallengeData i k r s)
-pumpChallenge [] d = pure d
-pumpChallenge _ d
-  | getAny $ isComplete d
-  = pure d
-pumpChallenge (ri : es) d =
-  pumpChallenge es =<< step ri d
+    => Challenge i k r
+    -> [i]
+    -> (Results k r, Challenge i k r)
+pumpChallenge c
+  = foldM (flip $ step []) c
+  . (Nothing :)
+  . fmap Just
+
+runChallenge
+    :: forall i k r.
+      ( HasFilter i, Eq (CustomFilter i)
+      , Ord k
+      , Monoid r, Commutative r, Eq r
+      )
+    => Challenge i k r
+    -> [i]
+    -> (Results k r, Bool)
+runChallenge c = fmap (== Empty) . pumpChallenge c
+
+isEmpty
+    :: forall i k r.
+      ( HasFilter i, Eq (CustomFilter i)
+      , Ord k
+      , Monoid r, Commutative r, Eq r
+      )
+    => Challenge i k r
+    -> Bool
+isEmpty = (== Empty) . snd . flip pumpChallenge []
 
 step
-    :: forall i k r s.
-       ( HasFilter i, Ord (CustomFilter i)
+    :: forall i k r
+     . ( HasFilter i
        , Ord k
-       , Monoid r
+       , Monoid r, Commutative r, Eq r
        )
-    => i
-    -> ChallengeData i k r s
-    -> ST s (ChallengeData i k r s)
-step ri d = do
-  let efs = M.assocs $ waitingOn d
-  (endo, ds) <-
-    flip foldMapM efs $ \(ef, res) ->
-      case matches ef ri of
-        True -> do
-          d' <- res
-          pure (Endo $ M.delete ef, d')
-        False -> mempty
-  pure $
-    d { waitingOn =
-           appEndo endo $ waitingOn d
-       } <> ds
+    => [k]
+    -> Maybe i
+    -> Challenge i k r
+    -> (Results k r, Challenge i k r)
+step _ _ Empty = pure empty
 
-foldMapM
-    :: (Monoid m, Applicative f, Traversable t)
-    => (a -> f m)
-    -> t a
-    -> f m
-foldMapM f = fmap fold . traverse f
+step kctx i (Both c1 c2)
+  = both <$> step kctx i c1 <*> step kctx i c2
+
+step kctx i (EitherC c1 c2) = do
+  c1' <- step kctx i c1
+  c2' <- step kctx i c2
+  case (c1', c2') of
+    (Empty, _) -> prune kctx c2'
+    (_, Empty) -> prune kctx c1'
+    _          -> pure $ eitherC c1' c2'
+
+step kctx i (AndThen c1 c2) =
+  step kctx i c1 >>= \case
+    Empty -> step kctx Nothing c2
+    c1' -> pure $ andThen c1' c2
+
+step kctx i (RewardThen r c) =
+  let s = Results r mempty
+      (s', c') = step kctx i c
+  in  (s <> s', c')
+
+step kctx (Just i) (Gate f c)
+  | matches f i = step kctx Nothing c
+step _ _ c@Gate{} = pure c
+
+step kctx i (Clue k c) = do
+  let kctx' = kctx <> [k]
+  step kctx' i c >>= \case
+    Empty ->
+      let s = Results mempty $ singleton kctx' completed
+      in  (s, Empty)
+    c' ->
+      let s = Results mempty $ singleton kctx' seen
+      in  (s, clue [k] c')
+
+prune
+    :: (Ord k, Monoid r)
+    => [k]
+    -> Challenge i k r
+    -> (Results k r, Challenge i k r)
+prune kctx c =
+  let k = fmap (<> failed) $ findClues kctx c
+      s = Results mempty k
+      (s', c') = pure empty
+  in  (s <> s', c')
+
+findClues
+    :: forall i k r
+     . Ord k
+    => [k]
+    -> Challenge i k r
+    -> MonoidalMap [k] ClueState
+findClues _    Empty
+  = mempty
+findClues kctx (Both c1 c2)
+  = findClues kctx c1 <> findClues kctx c2
+findClues kctx (EitherC c1 c2)
+  = findClues kctx c1 <> findClues kctx c2
+findClues _    (Gate _ _)
+  = mempty
+findClues kctx (AndThen c _)
+  = findClues kctx c
+findClues kctx (RewardThen _ c)
+  = findClues kctx c
+findClues kctx (Clue k Empty)
+  = singleton (kctx <> [k]) completed
+findClues kctx (Clue k c)
+  = singleton (kctx <> [k]) seen
+    <> findClues (kctx <> [k]) c
+
+rewardThen
+    :: forall i k r
+     . (Eq r, Monoid r, Commutative r)
+    => r -> Challenge i k r -> Challenge i k r
+rewardThen r c | r == mempty = c
+rewardThen r' (RewardThen r c) = RewardThen (r <> r') c
+rewardThen r c = RewardThen r c
 
 -- Public interface
 
-empty :: Challenge i k r
-empty = Challenge $ \_ _ cont -> cont
+empty :: forall i k r. Challenge i k r
+empty = Empty
 
-reward
-    :: ( Ord k, Ord (CustomFilter i)
-       , Commutative r, Monoid r
-       )
-    => r
-    -> Challenge i k r
-reward r = rewardThen r empty
+bottom :: forall i k r. Challenge i k r
+bottom = gate never empty
 
 clue
     :: forall i k r
-     . (Ord (CustomFilter i), Ord k, Monoid r)
-    => [k]
-    -> Challenge i k r
-    -> Challenge i k r
+     . (Eq r, Monoid r, Commutative r)
+    => [k] -> Challenge i k r -> Challenge i k r
 clue [] c = c
-clue (k : ks) c =
-  Challenge $ \kctx rec cont -> do
-    let kctx' = kctx <> DL.singleton k
-        k' = DL.toList kctx'
-    state <- rec kctx' seen
-    d <- unChallenge (clue ks c) kctx' rec $ do
-      dc <- cont
-      pure $ tellClue (M.singleton k' completed) <> dc
-    pure $ tellClue (M.singleton k' state) <> d
+clue k (RewardThen r c) = rewardThen r (clue k c)
+clue k c = foldr Clue c k
 
-eitherC
-    :: (Ord (CustomFilter i), Ord k, Monoid r)
-    => Challenge i k r
-    -> Challenge i k r
-    -> Challenge i k r
-eitherC (Challenge c1) (Challenge c2) =
-  Challenge $ \kctx rec cont -> do
-    filled  <- newSTRef False
-    c1_clues <- newSTRef mempty
-    c2_clues <- newSTRef mempty
-    d1 <-
-      c1 kctx (decorate filled c1_clues rec) $
-        oneshot filled $ do
-          d <- cont
-          p <- prune c2_clues
-          pure $ d <> p
-    d2 <-
-      c2 kctx (decorate filled c2_clues rec) $
-        oneshot filled $ do
-          d <- cont
-          p <- prune c1_clues
-          pure $ d <> p
-    pure $ d1 <> d2
-
-andThen
-    :: Challenge i k r
-    -> Challenge i k r
-    -> Challenge i k r
-andThen (Challenge c1) (Challenge c2) =
-  Challenge $ \kctx rec cont ->
-    c1 kctx rec (c2 kctx rec cont)
-
-both
-    :: (Ord (CustomFilter i), Ord k, Monoid r)
-    => Challenge i k r
-    -> Challenge i k r
-    -> Challenge i k r
-both (Challenge c1) (Challenge c2) =
-  Challenge $ \kctx rec cont -> do
-    remaining_wins  <- newSTRef @Int 2
-    let run_win = do
-          modifySTRef' remaining_wins $ subtract 1
-          readSTRef remaining_wins >>= \case
-            0 -> cont
-            _ -> pure mempty
-    liftA2 (<>)
-      (c1 kctx rec run_win)
-      (c2 kctx rec run_win)
+reward
+    :: forall i k r
+     . (Eq r, Monoid r, Commutative r)
+    => r -> Challenge i k r
+reward r = rewardThen r empty
 
 gate
     :: forall i k r
-     . (Ord (CustomFilter i), Ord k, Monoid r)
-    => InputFilter i
+     . InputFilter i
     -> Challenge i k r
     -> Challenge i k r
-gate ef (Challenge c) = Challenge $ \kctx rec cont ->
-  pure $ (mempty @(ChallengeData i k r _))
-    { waitingOn = M.singleton ef $ c kctx rec cont }
+gate = Gate
 
-bottom
-    :: (Ord (CustomFilter i), Ord k, Monoid r)
-    => Challenge i k r
-bottom = Challenge $ \_ -> mempty
+both
+    :: forall i k r
+     . (Eq r, Monoid r, Commutative r)
+     => Challenge i k r
+     -> Challenge i k r
+     -> Challenge i k r
+both (RewardThen r c1) c2 = rewardThen r (both c1 c2)
+both c1 (RewardThen r c2) = rewardThen r (both c1 c2)
+both Empty c2 = c2
+both c1 Empty = c1
+both c1 c2 = Both c1 c2
 
-getClues
-    :: forall i k r.
-       ( HasFilter i, Ord (CustomFilter i)
-       , Ord k
-       , Monoid r
+andThen
+    :: forall i k r
+     . ( Monoid r, Commutative r, Eq r
        )
     => Challenge i k r
-    -> [i]
-    -> MonoidalMap [k] ClueState
-getClues c = clues . fst . flip runChallenge c
+    -> Challenge i k r
+    -> Challenge i k r
+andThen Empty c = c
+andThen (Gate f c1) c2 = gate f (andThen c1 c2)
+andThen (RewardThen r c1) c2 =
+  rewardThen r (andThen c1 c2)
+andThen (AndThen c1 c2) c3 =
+  andThen c1 (andThen c2 c3)
+andThen c1 c2 = AndThen c1 c2
+
+eitherC
+    :: forall i k r
+     . (Eq r, Monoid r, Commutative r)
+    => Challenge i k r
+    -> Challenge i k r
+    -> Challenge i k r
+eitherC (RewardThen r c1) c2 =
+  rewardThen r (eitherC c1 c2)
+eitherC c1 (RewardThen r c2) =
+  rewardThen r (eitherC c1 c2)
+eitherC c1 c2 = EitherC c1 c2
 
 getRewards
     :: forall i k r.
-       ( HasFilter i, Ord (CustomFilter i)
-       , Ord k
-       , Monoid r
-       )
+      ( HasFilter i
+      , Ord k
+      , Monoid r, Commutative r, Eq r
+      ) =>
+      Challenge i k r -> [i] -> r
+getRewards c = rewards . fst . pumpChallenge c
+
+getClues
+    :: forall i k r.
+      ( HasFilter i
+      , Ord k
+      , Monoid r, Commutative r, Eq r
+      )
     => Challenge i k r
     -> [i]
-    -> r
-getRewards c = rewards . fst . flip runChallenge c
+    -> MonoidalMap [k] ClueState
+getClues c = clues . fst . pumpChallenge c
 
 -- Give it a spin
 
