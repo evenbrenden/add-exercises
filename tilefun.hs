@@ -5,6 +5,8 @@
 
 {-# LANGUAGE DerivingVia #-}
 
+module TileFun where
+
 import Control.Applicative
 import Data.Functor.Compose
 import Data.List.Split
@@ -82,5 +84,5 @@ main = do
     putStrLn (toString squareLength (swirl diagonalTile))
     -- The strict equality in diagonalTile make these renderings a bit not very pretty
     putStrLn (toString squareLength (beside (flipV diagonalTile) (flipH diagonalTile)))
-    putStrLn (toString squareLength (behind (above diagonalTile Main.empty) (above Main.empty diagonalTile)))
+    putStrLn (toString squareLength (behind (above diagonalTile TileFun.empty) (above TileFun.empty diagonalTile)))
     return ()
